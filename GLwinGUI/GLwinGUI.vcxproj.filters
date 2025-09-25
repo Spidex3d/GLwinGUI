@@ -21,10 +21,10 @@
     <ClInclude Include="vendors\glad\glad.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\GLwinMaths.h">
+    <ClInclude Include="Shader\GLwinShaderManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\Shader.h">
+    <ClInclude Include="Shader\GLwinShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -32,5 +32,12 @@
     <ClCompile Include="src\GLwinGUI.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Shader\GLwinShaderManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shader\Shaders\test.vert" />
+    <None Include="Shader\Shaders\test.frag" />
   </ItemGroup>
 </Project>

@@ -1,4 +1,7 @@
 #include <glad/glad.h>// Include glad to get the OpenGL headers
+#include "../../GLwinGUI/vendors/glm/glm.hpp" // Ensure this include is correct and resolves glm::mat4  
+//#include <glm/gtc/matrix_transform.hpp> // Include for glm::mat4 transformations  
+//#include <glm/gtc/type_ptr.hpp> // Include for glm::value_ptr if needed
 #include <iostream>
 #include <GLwin.h>  // Include the GLwin header file my GLFW
 #include <GLwinGUI.h>
@@ -50,15 +53,24 @@ int main() {
 		GLWIN_LOG_INFO("GLAD initialized successfully.");
 	}*/
 	 GLwinGUI::Instance()->Initialize(); // Initialize GLAD after context creation
-	//GLwinGUI::Instance()->CreateGuiWindow("Test Window", 50, 50, 300, 200);
+	 //GLwinGUI::Instance()->CreateGuiWindow("Test Window", 50, 50, 300, 200);
 	
-	
+
+	 // Setup OpenGL, GUI, etc.
+	 std::vector<std::unique_ptr<GuiWindowData>> guiwWindowsdata;
+	 GLwinGUI* gui = GLwinGUI::Instance();
+
+	 // If you need to create windows:
+	 int currentIndex = 0, winindex = 0;
+	 gui->RequestAddNewWindow();
+	 gui->CreateGuiWindow(glm::mat4(), glm::mat4(), guiwWindowsdata, currentIndex, winindex);
 
 
 	glGetString(GL_VERSION); // Ensure context is current
 	GLWIN_LOG_INFO("OpenGL version " << glGetString(GL_VERSION));
 
 	while (!GLwinWindowShouldClose(window)) {
+        
 		// Poll and handle events (inputs, window resize, etc.)
 		GLwinPollEvents(); // New non-blocking event polling
 
@@ -84,9 +96,9 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT);
 		glViewport(0, 0, w, h);
 
-		GLwinGUI::Instance()->GLwinDrawGuiWindow(); // Draw GUI windows
+		//GLwinGUI::Instance()->GLwinDrawGuiWindow(); // Draw GUI windows
 		
-
+		gui->GLwinDrawGuiWindow(guiwWindowsdata);
 
 		GLwinSwapBuffers(window);
 
