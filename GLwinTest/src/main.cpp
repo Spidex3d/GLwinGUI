@@ -1,25 +1,20 @@
 #include <glad/glad.h>// Include glad to get the OpenGL headers
 #include "../../GLwinGUI/vendors/glm/glm.hpp" // Ensure this include is correct and resolves glm::mat4  
-//#include <glm/gtc/matrix_transform.hpp> // Include for glm::mat4 transformations  
-//#include <glm/gtc/type_ptr.hpp> // Include for glm::value_ptr if needed
 #include <iostream>
 #include <GLwin.h>  // Include the GLwin header file my GLFW
-#include <GLwinGUI.h>
 #include <GLwinLog.h> // Include the GLwin logging header
  
 
 // The new code is on GitHub : https://github.com/Spidex3d/GLwin
 
 // It's a window library API to make it easy to open a window and set up modern opengl like GLFW _ SLD_Raylib
-// Road map get the window open, have a GUI, have minimal 2d and 3d objects, have a minimal Shader, have a.obj model loader
+// Road map get a working window open and then add more features, 
 
 // ############################ Always run before adding new code ############################
 
 int main() {
 	std::cout << "Hello, GLwinTest main Window!" << std::endl;
 	GLwinHelloFromGLwin();
-
-	GLwinGUI::Instance()->GLwinHelloFromGLwinGUI();
 	
 
 	GLwinWindowHint(0, 0); // Not implemented
@@ -41,29 +36,15 @@ int main() {
 	GLwinMakeContextCurrent(window);
 	int w, h;
 	GLwinGetFramebufferSize(window, &w, &h);
-	//std::cout << "Framebuffer size: " << w << " x " << h << std::endl;
 	GLWIN_LOG_DEBUG("Framebuffer x= " << w << ", y= " << h);
 
-	/*if (!gladLoadGL()) {
-
+	if (!gladLoadGL()) {
 		GLWIN_LOG_WARNING("Failed to initialize GLAD!");
-		return 1;
+		return -1;
 	}
 	else {
 		GLWIN_LOG_INFO("GLAD initialized successfully.");
-	}*/
-	 GLwinGUI::Instance()->Initialize(); // Initialize GLAD after context creation
-	 //GLwinGUI::Instance()->CreateGuiWindow("Test Window", 50, 50, 300, 200);
-	
-
-	 // Setup OpenGL, GUI, etc.
-	 std::vector<std::unique_ptr<GuiWindowData>> guiwWindowsdata;
-	 GLwinGUI* gui = GLwinGUI::Instance();
-
-	 // If you need to create windows:
-	 int currentIndex = 0, winindex = 0;
-	 gui->RequestAddNewWindow();
-	 gui->CreateGuiWindow(glm::mat4(), glm::mat4(), guiwWindowsdata, currentIndex, winindex);
+	}
 
 
 	glGetString(GL_VERSION); // Ensure context is current
@@ -88,17 +69,13 @@ int main() {
 		if (GLwinGetMouseButton(window, GLWIN_MOUSE_BUTTON_LEFT) == GLWIN_PRESS) {
 			printf("Mouse Left Button Pressed at (%f, %f)\n", mx, my);
 		}
-
-
-		
+				
 
 		glClearColor(0.17f, 0.17f, 0.18f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 		glViewport(0, 0, w, h);
-
-		//GLwinGUI::Instance()->GLwinDrawGuiWindow(); // Draw GUI windows
+		// -------------------------------- Rendering code goes here --------------------------------
 		
-		gui->GLwinDrawGuiWindow(guiwWindowsdata);
 
 		GLwinSwapBuffers(window);
 
@@ -107,10 +84,11 @@ int main() {
 			GLWIN_LOG_ERROR("Something went wrong with opengl: " << err);
 
 	}
+
 	GLwin_DestroyWindow(window); // Clean up and close window
 	GLwinTerminate();
 
-	std::wcout << L"Window closed, exiting.\n";
+	GLWIN_LOG_INFO("Window closed, exiting.");
 
 	return 0;
 }

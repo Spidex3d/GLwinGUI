@@ -137,18 +137,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="include\GLwinGUI.h" />
-    <ClInclude Include="Shader\GLwinShader.h" />
-    <ClInclude Include="Shader\GLwinShaderManager.h" />
     <ClInclude Include="vendors\glad\glad.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="Shader\GLwinShaderManager.cpp" />
-    <ClCompile Include="src\GLwinGUI.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Shader\Shaders\test.frag" />
-    <None Include="Shader\Shaders\test.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

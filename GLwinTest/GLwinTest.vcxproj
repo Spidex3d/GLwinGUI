@@ -77,7 +77,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)GLwinTest\vendors\;$(SolutionDir)GLwin\include\;$(SolutionDir)GLwinGUI\include\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)GLwinTest\vendors\;$(SolutionDir)GLwin\include\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -109,7 +109,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)GLwinTest\vendors\;$(SolutionDir)GLwin\include\;$(SolutionDir)GLwinGUI\include\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)GLwinTest\vendors\;$(SolutionDir)GLwin\include\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -139,9 +139,6 @@
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\GLwinGUI\GLwinGUI.vcxproj">
-      <Project>{130ef972-37cc-4f79-9a92-850ae1de6759}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\GLwin\GLwin.vcxproj">
       <Project>{eea8c85c-a543-4e47-bd48-58a4b766d059}</Project>
     </ProjectReference>

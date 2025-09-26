@@ -7,8 +7,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GLwinTest", "GLwinTest\GLwi
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GLwin", "GLwin\GLwin.vcxproj", "{EEA8C85C-A543-4E47-BD48-58A4B766D059}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GLwinGUI", "GLwinGUI\GLwinGUI.vcxproj", "{130EF972-37CC-4F79-9A92-850AE1DE6759}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -33,14 +31,6 @@ Global
 		{EEA8C85C-A543-4E47-BD48-58A4B766D059}.Release|x64.Build.0 = Release|x64
 		{EEA8C85C-A543-4E47-BD48-58A4B766D059}.Release|x86.ActiveCfg = Release|Win32
 		{EEA8C85C-A543-4E47-BD48-58A4B766D059}.Release|x86.Build.0 = Release|Win32
-		{130EF972-37CC-4F79-9A92-850AE1DE6759}.Debug|x64.ActiveCfg = Debug|x64
-		{130EF972-37CC-4F79-9A92-850AE1DE6759}.Debug|x64.Build.0 = Debug|x64
-		{130EF972-37CC-4F79-9A92-850AE1DE6759}.Debug|x86.ActiveCfg = Debug|Win32
-		{130EF972-37CC-4F79-9A92-850AE1DE6759}.Debug|x86.Build.0 = Debug|Win32
-		{130EF972-37CC-4F79-9A92-850AE1DE6759}.Release|x64.ActiveCfg = Release|x64
-		{130EF972-37CC-4F79-9A92-850AE1DE6759}.Release|x64.Build.0 = Release|x64
-		{130EF972-37CC-4F79-9A92-850AE1DE6759}.Release|x86.ActiveCfg = Release|Win32
-		{130EF972-37CC-4F79-9A92-850AE1DE6759}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

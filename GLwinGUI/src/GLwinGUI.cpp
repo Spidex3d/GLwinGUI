@@ -4,6 +4,8 @@
 #include "../../GLwinGUI/Shader/GLwinShaderManager.h"
 #include "../../vendors/glm/glm.hpp"
 #include "../../vendors/glm/gtc/matrix_transform.hpp" // Include for glm::mat4 transformations
+#include "../../gui/BaseGui.h"
+#include "../../gui/guiWin.h"
 
 #include <iostream>
 
@@ -24,41 +26,22 @@ void GLwinGUI::Initialize() {
     else {
         GLWIN_LOG_INFO("GLAD initialized successfully.");
     }
-    float vertices[] = {
-        //Positions          Normals          Text coords
-         0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
-         0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
-        -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-        -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f
-    };
-    unsigned int indices[] = {
-        0, 1, 3,
-        1, 2, 3
-    };
+    
+}
 
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    // Vertex positions
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
+void GLwinGUI::RenderGUI(const glm::mat4& view, const glm::mat4& projection,
+    std::vector<std::unique_ptr<BaseGui>>& guiwWindowsdata, int& currentIndex, Shader& shader)
+{
+    GLwinGUI::CreateGuiWindow(view, projection, guiwWindowsdata, currentIndex, winindex);
 }
 
 void GLwinGUI::CreateGuiWindow(const glm::mat4& view, const glm::mat4& projection,
-    std::vector<std::unique_ptr<GuiWindowData>>& guiwWindowsdata, int& currentIndex, int& winindex)
+    std::vector<std::unique_ptr<BaseGui>>& guiwWindowsdata, int& currentIndex, int& winindex)
 {
     if (ShouldAddNewWindow) {
         winindex = static_cast<int>(guiwWindowsdata.size());
 
-        std::unique_ptr<GuiWindowData> newWindow = std::make_unique<GuiWindowData>(currentIndex, "Default_Window", winindex);
+        std::unique_ptr<BasewinGUI> newWindow = std::make_unique<BasewinGUI>(currentIndex, "Default_Window", winindex);
         switch (winindex) {
         case 0:
             newWindow->posX = 200;
@@ -84,47 +67,37 @@ void GLwinGUI::CreateGuiWindow(const glm::mat4& view, const glm::mat4& projectio
         }
 
         newWindow->modelMatrix = glm::mat4(1.0f);
-        glm::translate(newWindow->modelMatrix, glm::vec3(newWindow->posX, newWindow->posY, 0.0f));
-        glm::scale(newWindow->modelMatrix, glm::vec3(newWindow->width, newWindow->height, 1.0f));
-
-
+        newWindow->modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(newWindow->posX, newWindow->posY, 0.0f));
+        newWindow->modelMatrix = glm::scale(newWindow->modelMatrix, glm::vec3(newWindow->width, newWindow->height, 1.0f));
+        
 
         guiwWindowsdata.push_back(std::move(newWindow));
+
+        for (const auto& win : guiwWindowsdata) {
+            std::cout << "This window's name is: " << win->GuiWinName << std::endl;
+        }
+
         ShouldAddNewWindow = false;
     }
 
-}
-    void GLwinGUI::GLwinDrawGuiWindow(const std::vector<std::unique_ptr<GuiWindowData>>&guiwWindowsdata)
-    {
-        // For each window, set up transforms and draw
-        for (const auto& win : guiwWindowsdata) {
-            // TODO: Set up model matrix using win->posX, win->posY, win->width, win->height
-            // TODO: Bind shader, set uniforms, etc.
-            /*if (GLwinShaderManager::defaultShader)
-                GLwinShaderManager::defaultShader->Use();
-            else
-                std::cerr << "Error: defaultShader is null!" << std::endl;*/
-
+    // Draw all windows
+    for (const auto& win : guiwWindowsdata) {
+        if (auto* guiwin = dynamic_cast<BasewinGUI*>(win.get())) {
+            // Set shader uniforms for model matrix here if using shaders
             /*GLwinShaderManager::defaultShader->Use();
             GLwinShaderManager::defaultShader->setMat4("view", view);
             GLwinShaderManager::defaultShader->setMat4("projection", projection);*/
 
-            if (auto* guiwin = dynamic_cast<GuiWindowData*>(win.get())) {
-                guiwin->modelMatrix = glm::mat4(1.0f);
-                // GLwinShaderManager::defaultShader->setMat4("model", guiwin->modelMatrix);
-
-                glBindVertexArray(VAO);
-                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); // using indices
-                glBindVertexArray(0);
-            }
+            guiwin->DrawGuiWindow();
         }
-        glUseProgram(0);
     }
-
-void GLwinGUI::GLwin_DestroyWindow(GuiWindowData* guiwindow)
-{
-    // Implement window destruction logic if needed
+    
 }
+
+//void GLwinGUI::GLwin_DestroyWindow(GuiWindowData* guiwindow)
+//{
+//    // Implement window destruction logic if needed
+//}
 
 void GLwinGUI::GLwinHelloFromGLwinGUI()
 {
