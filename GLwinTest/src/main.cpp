@@ -9,14 +9,12 @@
 
 // It's a window library API to make it easy to open a window and set up modern opengl like GLFW _ SLD_Raylib
 // Road map get a working window open and then add more features, 
-// Just a test to update to github
 // ############################ Always run before adding new code ############################
 
 int main() {
 	std::cout << "Hello, GLwinTest main Window!" << std::endl;
 	GLwinHelloFromGLwin();
 	
-
 	GLwinWindowHint(0, 0); // Not implemented
 	GLwinWindowHint(GLWIN_MAXIMIZED, GLWIN_FALSE); // Default is not maximized
 	GLwinWindowHint(GLWIN_RESIZABLE, GLWIN_TRUE); // Default is resizable
@@ -38,15 +36,14 @@ int main() {
 	GLwinGetFramebufferSize(window, &w, &h);
 	GLWIN_LOG_DEBUG("Framebuffer x= " << w << ", y= " << h);
 
-	if (!gladLoadGL()) {
-		GLWIN_LOG_WARNING("Failed to initialize GLAD!");
+	if (gladLoadGLLoader((GLADloadproc)GLwinGetProcAddress) == 0) {
+		GLWIN_LOG_WARNING("Failed to initialize GLAD with GLwinGetProcAddress!");
 		return -1;
 	}
 	else {
-		GLWIN_LOG_INFO("GLAD initialized successfully.");
+		GLWIN_LOG_INFO("GLAD initialized successfully with GLwinGetProcAddress.");
 	}
-
-
+	
 	glGetString(GL_VERSION); // Ensure context is current
 	GLWIN_LOG_INFO("OpenGL version " << glGetString(GL_VERSION));
 

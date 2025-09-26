@@ -20,6 +20,7 @@ extern "C" {
 
     // Window/context management
     void GLwinMakeContextCurrent(GLWIN_window* window);
+	void* GLwinGetProcAddress(const char* procname);
     void GLwinSwapBuffers(GLWIN_window* window);
     void GLwinPollEvents(void);
     int  GLwinWindowShouldClose(GLWIN_window* window);

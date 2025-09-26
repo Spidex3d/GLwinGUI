@@ -174,6 +174,18 @@ void GLwinMakeContextCurrent(GLWIN_window* window) {
     wglMakeCurrent(window->hdc, window->hglrc);
 }
 
+void* GLwinGetProcAddress(const char* procname)
+{
+    void* p = (void*)wglGetProcAddress(procname);
+    if (p == nullptr) {
+        // Try to get from OpenGL32.dll for old functions
+        static HMODULE module = LoadLibraryA("opengl32.dll");
+        if (module)
+            p = (void*)GetProcAddress(module, procname);
+    }
+    return p;
+}
+
 void GLwinSwapBuffers(GLWIN_window* window) {
     if (window && window->hdc) {
         ::SwapBuffers(window->hdc);
