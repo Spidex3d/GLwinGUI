@@ -33,6 +33,8 @@ struct GLWIN_window {
     // mouse state
     double mouseX = 0.0, mouseY = 0.0;
     bool mouseButtons[3] = { false, false, false };
+    GLwinCharCallback charCallback = nullptr;
+	
 };
 
 // Internal static
@@ -280,6 +282,15 @@ int GLwinGetKey(GLWIN_window* window, int keycode) {
     auto it = window->keyState.find(keycode);
     return (it != window->keyState.end() && it->second) ? GLWIN_PRESS : GLWIN_RELEASE;
 }
+
+// Set character callback (not implemented)
+void GLwinSetCharCallback(GLWIN_window* window, GLwinCharCallback callback)
+{
+	if (!window) return;
+	window->charCallback = callback;
+
+}
+
 // Mouse state
 int GLwinGetMouseButton(GLWIN_window* window, int button)
 {
@@ -336,6 +347,12 @@ static LRESULT CALLBACK GLwin_WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
     case WM_KEYUP:
         if (window) window->keyState[(int)wParam] = false;
         return 0;
+		// Character input
+    case WM_CHAR:
+        if (window && window->charCallback) {
+            window->charCallback((unsigned int)wParam);
+        }
+        break;
 
         // Mouse events can be added here
     case WM_MOUSEMOVE:

@@ -12,7 +12,7 @@ extern "C" {
 
     // Opaque window structure
     typedef struct GLWIN_window GLWIN_window;
-
+    
 
     // Window creation & destruction
     GLWIN_window* GLwin_CreateWindow(int width, int height, const wchar_t* title);
@@ -54,22 +54,13 @@ extern "C" {
     // Keyboard input API
     int GLwinGetKey(GLWIN_window* window, int keycode);
 
+	// Set keyboard callback
+    typedef void(*GLwinCharCallback)(unsigned int codepoint);
+    void GLwinSetCharCallback(GLWIN_window* window, GLwinCharCallback callback);
+
     // Mouse input API
     int GLwinGetMouseButton(GLWIN_window* window, int button);
     void GLwinGetCursorPos(GLWIN_window* window, double* xpos, double* ypos);
-
-    // GLwinUI: Simple GUI message box
-    // GLwinUI_MessageBox(const wchar_t* title, const wchar_t* message);
-
-    // Font loading API
-    // Text drawing on screen like raylib
-
-    // Basic 2D drawing API
-    // Sprite drawing 
-
-    // object loading API
-
-    // Shader loading API
 
     // Sound loading API
 
