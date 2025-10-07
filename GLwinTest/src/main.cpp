@@ -11,6 +11,17 @@
 // Road map get a working window open and then add more features, 
 // ############################ Always run before adding new code ############################
 
+// This is your callback function
+void MyCharCallback(unsigned int codepoint) {
+	// Print the Unicode codepoint as a character (if printable)
+	printf("Char input: U+%04X '%lc'\n", codepoint, (wchar_t)codepoint);
+}
+void MyKeyCallback(int key, int action) {
+	// Print key event details
+	const char* act = (action == GLWIN_PRESS) ? "pressed" : "released";
+	printf("Key: %d %s\n", key, act);
+}
+
 int main() {
 	std::cout << "Hello, GLwinTest main Window!" << std::endl;
 	GLwinHelloFromGLwin();
@@ -35,6 +46,13 @@ int main() {
 	int w, h;
 	GLwinGetFramebufferSize(window, &w, &h);
 	GLWIN_LOG_DEBUG("Framebuffer x= " << w << ", y= " << h);
+
+	GLwinSetCharCallback(window, MyCharCallback);
+	GLwinSetKeyCallback(window, MyKeyCallback);
+
+	GLwinCharCallback charCallback = [](unsigned int codepoint) {
+		std::cout << "Char input: " << static_cast<char>(codepoint) << " (codepoint: " << codepoint << ")" << std::endl;
+	};
 
 	if (gladLoadGLLoader((GLADloadproc)GLwinGetProcAddress) == 0) {
 		GLWIN_LOG_WARNING("Failed to initialize GLAD with GLwinGetProcAddress!");

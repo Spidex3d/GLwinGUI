@@ -33,6 +33,7 @@ struct GLWIN_window {
     // mouse state
     double mouseX = 0.0, mouseY = 0.0;
     bool mouseButtons[3] = { false, false, false };
+	GLwinKeyCallback keyCallback = nullptr;
     GLwinCharCallback charCallback = nullptr;
 	
 };
@@ -283,7 +284,14 @@ int GLwinGetKey(GLWIN_window* window, int keycode) {
     return (it != window->keyState.end() && it->second) ? GLWIN_PRESS : GLWIN_RELEASE;
 }
 
-// Set character callback (not implemented)
+// Set key callback (only key state tracking implemented)
+void GLwinSetKeyCallback(GLWIN_window* window, GLwinKeyCallback callback)
+{
+	if (window) window->keyCallback = callback;
+}
+
+
+// Set character callback (implemented)
 void GLwinSetCharCallback(GLWIN_window* window, GLwinCharCallback callback)
 {
 	if (!window) return;
@@ -342,11 +350,20 @@ static LRESULT CALLBACK GLwin_WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
         }
         return 0;
     case WM_KEYDOWN:
-        if (window) window->keyState[(int)wParam] = true;
+        if (window) {
+            window->keyState[(int)wParam] = true;
+            if (window->keyCallback)
+                window->keyCallback((int)wParam, GLWIN_PRESS);
+        }
         return 0;
     case WM_KEYUP:
-        if (window) window->keyState[(int)wParam] = false;
+        if (window) {
+            window->keyState[(int)wParam] = false;
+            if (window->keyCallback)
+                window->keyCallback((int)wParam, GLWIN_PRESS);
+        }
         return 0;
+        
 		// Character input
     case WM_CHAR:
         if (window && window->charCallback) {

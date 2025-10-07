@@ -54,6 +54,8 @@ extern "C" {
     // Keyboard input API
     int GLwinGetKey(GLWIN_window* window, int keycode);
 
+	typedef void(*GLwinKeyCallback)(int key, int action);
+	void GLwinSetKeyCallback(GLWIN_window* window, GLwinKeyCallback callback);
 	// Set keyboard callback
     typedef void(*GLwinCharCallback)(unsigned int codepoint);
     void GLwinSetCharCallback(GLWIN_window* window, GLwinCharCallback callback);
