@@ -247,6 +247,15 @@ void GLwinSetWindowIcon(GLWIN_window* window, const wchar_t* iconPath) {
     }
 }
 
+void GLwinGetTimer(GLWIN_window* window, int tstart, int tmax)
+{
+	if (!window) return;
+	// Placeholder implementation
+	// You can implement a proper timer using QueryPerformanceCounter or timeGetTime
+}
+
+
+
 //bool GLwinSetScreenMaximized(GLWIN_window* window, bool maximize) {
 //    if (!window || !window->hwnd) return false;
 //    ShowWindow(window->hwnd, maximize ? SW_MAXIMIZE : SW_RESTORE);
@@ -359,8 +368,8 @@ static LRESULT CALLBACK GLwin_WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
     case WM_KEYUP:
         if (window) {
             window->keyState[(int)wParam] = false;
-            if (window->keyCallback)
-                window->keyCallback((int)wParam, GLWIN_PRESS);
+            /*if (window->keyCallback)
+                window->keyCallback((int)wParam, GLWIN_PRESS);*/
         }
         return 0;
         

@@ -24,9 +24,15 @@
     <ClInclude Include="include\GLwinDefs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\GLwinTime.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\GLwin.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\GLwinTime.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

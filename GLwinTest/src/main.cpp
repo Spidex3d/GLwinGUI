@@ -3,7 +3,6 @@
 #include <iostream>
 #include <GLwin.h>  // Include the GLwin header file my GLFW
 #include <GLwinLog.h> // Include the GLwin logging header
- 
 
 // The new code is on GitHub : https://github.com/Spidex3d/GLwin
 
@@ -65,7 +64,19 @@ int main() {
 	glGetString(GL_VERSION); // Ensure context is current
 	GLWIN_LOG_INFO("OpenGL version " << glGetString(GL_VERSION));
 
+	int frameCount = 0;
+	double lastTime = GLwinGetTime();
+
 	while (!GLwinWindowShouldClose(window)) {
+		double currentTime = GLwinGetTime();
+		frameCount++;
+
+		// Print FPS every second
+		if (currentTime - lastTime >= 1.0) {
+			std::cout << "FPS: " << frameCount << std::endl;
+			frameCount = 0;
+			lastTime = currentTime;
+		}
         
 		// Poll and handle events (inputs, window resize, etc.)
 		GLwinPollEvents(); // New non-blocking event polling

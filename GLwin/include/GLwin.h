@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <string>
 #include "GLwinDefs.h"
+#include "GLwinTime.h"
 
 
 #ifdef __cplusplus
@@ -43,6 +44,7 @@ extern "C" {
     void GLwinSetWindowIcon(GLWIN_window* window, const wchar_t* iconPath);
 
     // Time API
+	void GLwinGetTimer(GLWIN_window* window, int tstart, int tmax);
     // getTime
     // getElapsedTime
     // getFrameTime
