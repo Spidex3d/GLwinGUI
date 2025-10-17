@@ -31,13 +31,15 @@ extern "C" {
     // Window hints (Maximize, Resizeabel, Done)
    //TO DO GLWIN_CONTEXT_VERSION_MAJOR, GLWIN_CONTEXT_VERSION_MINOR, GLWIN_OPENGL_PROFILE, GLWIN_OPENGL_CORE_PROFILE
     void GLwinWindowHint(int hint, int value);
-    // Set window position
+    
     // set window opacity
     // set window focus
     // get window refresh rate
 
     // Framebuffer size and window state
     void GLwinGetFramebufferSize(GLWIN_window* window, int* width, int* height);
+    void GLwinGetWindowPos(GLWIN_window* window, int* winX, int* winY); // wrapper for current OS window pos
+    void GLwinSetWindowPos(GLWIN_window* window, int* posX, int* posY);
     int  GLwinGetWidth(GLWIN_window* window);
     int  GLwinGetHeight(GLWIN_window* window);
     // Optional: callback for resize

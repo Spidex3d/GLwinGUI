@@ -245,6 +245,35 @@ void GLwinGetFramebufferSize(GLWIN_window* window, int* width, int* height) {
     }
 }
 
+void GLwinGetWindowPos(GLWIN_window* window, int* winX, int* winY)
+{
+	// Get window position
+	if (!window || !window->hwnd) {
+		if (winX) *winX = 0;
+		if (winY) *winY = 0;
+		return;
+	}
+    RECT rect;
+    if (GetWindowRect(window->hwnd, &rect)) {
+        if (winX) *winX = rect.left;
+        if (winY) *winY = rect.top;
+    }
+    else {
+        if (winX) *winX = 0;
+        if (winY) *winY = 0;
+    }
+
+}
+
+void GLwinSetWindowPos(GLWIN_window* window, int* posX, int* posY)
+{
+	// Set window position
+	if (!window || !window->hwnd) return;
+    SetWindowPos(window->hwnd, nullptr, *posX, *posY, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+
+
+}
+
 int GLwinGetWidth(GLWIN_window* window) {
     int w = 0;
     GLwinGetFramebufferSize(window, &w, nullptr);

@@ -49,6 +49,13 @@ int main() {
 	GLwinGetFramebufferSize(window, &w, &h);
 	GLWIN_LOG_DEBUG("Framebuffer x= " << w << ", y= " << h);
 
+	int newX = 200, newY = 100;
+	GLwinSetWindowPos(window, &newX, &newY);
+
+	int x, y;
+	GLwinGetWindowPos(window, &x, &y);
+	std::cout << "Window position: " << x << ", " << y << std::endl;
+
 	GLwinSetCharCallback(window, MyCharCallback);
 	GLwinSetKeyCallback(window, MyKeyCallback);
 
@@ -78,7 +85,7 @@ int main() {
 		GLwinPollEvents(); // New non-blocking event polling
 
 		if (GLwinGetKey(window, GLWIN_ESCAPE) == GLWIN_PRESS) {
-			std::cout << "Escape key pressed, closing window." << std::endl;
+			std::cout << " Escape key pressed, closing window." << std::endl;
 			break; // Exit loop to close window
 		}
 		if (GLwinGetKey(window, GLWIN_SPACE) == GLWIN_PRESS) {
