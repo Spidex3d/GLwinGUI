@@ -1,4 +1,4 @@
-#include <glad/glad.h>// Include glad to get the OpenGL headers
+#include <glad/glad.h>// Include glad to get the OpenGL headers best if glad is at the top
 #include "../../GLwinGUI/vendors/glm/glm.hpp" // Ensure this include is correct and resolves glm::mat4  
 #include <iostream>
 #include <GLwin.h>  // Include the GLwin header file my GLFW
@@ -38,6 +38,9 @@ int main() {
 	else {
 		GLWIN_LOG_INFO("Window created successfully.");
 	}
+	// Toggle custom title bar on/off
+	GLwinEnableCustomTitleBar(window, GLWIN_TRUE);  // Enable custom title bar - ON
+	//GLwinEnableCustomTitleBar(window, GLWIN_FALSE); // Restore Windows default - OFF
 
 	// Set a custom icon (make sure "icon.ico" exists in working directory next to the .exe file)
 	GLwinSetWindowIcon(window, L"icon_01.ico");
@@ -64,19 +67,12 @@ int main() {
 	glGetString(GL_VERSION); // Ensure context is current
 	GLWIN_LOG_INFO("OpenGL version " << glGetString(GL_VERSION));
 
-	int frameCount = 0;
-	double lastTime = GLwinGetTime();
+	const double targetFPS = 60.0; // or 120.0
+	const double targetFrameTime = 1.0 / targetFPS; // in seconds
 
 	while (!GLwinWindowShouldClose(window)) {
-		double currentTime = GLwinGetTime();
-		frameCount++;
+		double frameStart = GLwinGetTime(); // Start time of the frame
 
-		// Print FPS every second
-		if (currentTime - lastTime >= 1.0) {
-			std::cout << "FPS: " << frameCount << std::endl;
-			frameCount = 0;
-			lastTime = currentTime;
-		}
         
 		// Poll and handle events (inputs, window resize, etc.)
 		GLwinPollEvents(); // New non-blocking event polling
@@ -100,10 +96,21 @@ int main() {
 		glClearColor(0.17f, 0.17f, 0.18f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 		glViewport(0, 0, w, h);
-		// -------------------------------- Rendering code goes here --------------------------------
 		
+		// -------------------------------- Rendering code goes here --------------------------------
 
 		GLwinSwapBuffers(window);
+
+		// Throttle to target FPS
+		double frameEnd = GLwinGetTime();
+		double elapsed = frameEnd - frameStart;
+		if (elapsed < targetFrameTime) {
+			double waitTime = targetFrameTime - elapsed;
+			DWORD ms = (DWORD)(waitTime * 1000.0);
+			if (ms > 0) Sleep(ms); // Sleep for the remaining time
+			// Spin-wait for extra precision (optional)
+			while ((GLwinGetTime() - frameStart) < targetFrameTime) {}
+		}
 
 		GLenum err = glGetError();
 		if (err != GL_NO_ERROR)

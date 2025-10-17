@@ -137,11 +137,13 @@
   <ItemGroup>
     <ClInclude Include="include\GLwin.h" />
     <ClInclude Include="include\GLwinDefs.h" />
+    <ClInclude Include="include\GLwinDialog.h" />
     <ClInclude Include="include\GLwinLog.h" />
     <ClInclude Include="include\GLwinTime.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\GLwin.cpp" />
+    <ClCompile Include="src\GLwinDialog.cpp" />
     <ClCompile Include="src\GLwinTime.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

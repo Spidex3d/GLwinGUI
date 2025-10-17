@@ -3,6 +3,7 @@
 #include <string>
 #include "GLwinDefs.h"
 #include "GLwinTime.h"
+#include "GLwinDialog.h"
 
 
 #ifdef __cplusplus
@@ -18,6 +19,8 @@ extern "C" {
     // Window creation & destruction
     GLWIN_window* GLwin_CreateWindow(int width, int height, const wchar_t* title);
     void GLwin_DestroyWindow(GLWIN_window* window);
+	// Enable or disable custom title bar
+    void GLwinEnableCustomTitleBar(GLWIN_window* window, int enable);
 
     // Window/context management
     void GLwinMakeContextCurrent(GLWIN_window* window);

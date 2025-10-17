@@ -172,6 +172,27 @@ void GLwin_DestroyWindow(GLWIN_window* window) {
     delete window;
 }
 
+void GLwinEnableCustomTitleBar(GLWIN_window* window, int enable)
+{
+	// Placeholder implementation
+	// Custom title bar implementation would go here
+    if (!window || !window->hwnd) return;
+
+    LONG style = GetWindowLongPtr(window->hwnd, GWL_STYLE);
+    if (enable == GLWIN_TRUE) {
+        // Hide default title bar and borders
+        style &= ~(WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
+    }
+    else {
+        // Restore default style
+        style |= (WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
+    }
+    SetWindowLongPtr(window->hwnd, GWL_STYLE, style);
+    SetWindowPos(window->hwnd, nullptr, 0, 0, 0, 0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+}
+
+
 void GLwinMakeContextCurrent(GLWIN_window* window) {
     if (!window || !window->hdc || !window->hglrc) return;
     wglMakeCurrent(window->hdc, window->hglrc);
