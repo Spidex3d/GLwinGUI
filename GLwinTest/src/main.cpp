@@ -39,8 +39,8 @@ int main() {
 		GLWIN_LOG_INFO("Window created successfully.");
 	}
 	// Toggle custom title bar on/off
-	GLwinEnableCustomTitleBar(window, GLWIN_TRUE);  // Enable custom title bar - ON
-	//GLwinEnableCustomTitleBar(window, GLWIN_FALSE); // Restore Windows default - OFF
+	//GLwinEnableCustomTitleBar(window, GLWIN_TRUE);  // Enable custom title bar - ON
+	GLwinEnableCustomTitleBar(window, GLWIN_FALSE); // Restore Windows default - OFF
 
 	// Set a custom icon (make sure "icon.ico" exists in working directory next to the .exe file)
 	GLwinSetWindowIcon(window, L"icon_01.ico");
@@ -49,12 +49,17 @@ int main() {
 	GLwinGetFramebufferSize(window, &w, &h);
 	GLWIN_LOG_DEBUG("Framebuffer x= " << w << ", y= " << h);
 
-	int newX = 200, newY = 100;
-	GLwinSetWindowPos(window, &newX, &newY);
+	
 
-	int x, y;
-	GLwinGetWindowPos(window, &x, &y);
-	std::cout << "Window position: " << x << ", " << y << std::endl;
+	int winX, winY;
+	GLwinGetWindowPos(window, &winX, &winY);  // fills winX & winY
+	std::cout << "Window Pos: " << winX << ", " << winY << std::endl;
+
+	GLwinGetGlobalCursorPos(window, &winX, &winY);
+	std::cout << "Cursor Pos: " << winX << ", " << winY << std::endl;
+
+	int newX = 200, newY = 100;
+	GLwinSetWindowPos(window, newX, newY);
 
 	GLwinSetCharCallback(window, MyCharCallback);
 	GLwinSetKeyCallback(window, MyKeyCallback);
@@ -98,7 +103,7 @@ int main() {
 		if (GLwinGetMouseButton(window, GLWIN_MOUSE_BUTTON_LEFT) == GLWIN_PRESS) {
 			printf("Mouse Left Button Pressed at (%f, %f)\n", mx, my);
 		}
-				
+			
 
 		glClearColor(0.17f, 0.17f, 0.18f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);

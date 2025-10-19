@@ -257,6 +257,8 @@ void GLwinGetWindowPos(GLWIN_window* window, int* winX, int* winY)
     if (GetWindowRect(window->hwnd, &rect)) {
         if (winX) *winX = rect.left;
         if (winY) *winY = rect.top;
+        printf("DEBUG GetWindowRect -> left=%d top=%d right=%d bottom=%d\n",
+            rect.left, rect.top, rect.right, rect.bottom);
     }
     else {
         if (winX) *winX = 0;
@@ -265,11 +267,11 @@ void GLwinGetWindowPos(GLWIN_window* window, int* winX, int* winY)
 
 }
 
-void GLwinSetWindowPos(GLWIN_window* window, int* posX, int* posY)
+void GLwinSetWindowPos(GLWIN_window* window, int posX, int posY)
 {
 	// Set window position
 	if (!window || !window->hwnd) return;
-    SetWindowPos(window->hwnd, nullptr, *posX, *posY, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+    SetWindowPos(window->hwnd, nullptr, posX, posY, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
 
 
 }
@@ -364,6 +366,20 @@ int GLwinGetMouseButton(GLWIN_window* window, int button)
     if (!window || button < 0 || button > 2) return GLWIN_RELEASE;
     return window->mouseButtons[button] ? GLWIN_PRESS : GLWIN_RELEASE;
 }
+
+// Get global cursor position
+void GLwinGetGlobalCursorPos(GLWIN_window* window, int* x, int* y)
+{
+    POINT p;
+    if (GetCursorPos(&p)) {
+        if (x) *x = p.x;
+        if (y) *y = p.y;
+    }
+}
+
+
+
+
 // Get cursor position
 void GLwinGetCursorPos(GLWIN_window* window, double* xpos, double* ypos)
 {

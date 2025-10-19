@@ -39,7 +39,7 @@ extern "C" {
     // Framebuffer size and window state
     void GLwinGetFramebufferSize(GLWIN_window* window, int* width, int* height);
     void GLwinGetWindowPos(GLWIN_window* window, int* winX, int* winY); // wrapper for current OS window pos
-    void GLwinSetWindowPos(GLWIN_window* window, int* posX, int* posY);
+    void GLwinSetWindowPos(GLWIN_window* window, int posX, int posY);
     int  GLwinGetWidth(GLWIN_window* window);
     int  GLwinGetHeight(GLWIN_window* window);
     // Optional: callback for resize
@@ -69,6 +69,7 @@ extern "C" {
 
     // Mouse input API
     int GLwinGetMouseButton(GLWIN_window* window, int button);
+	void GLwinGetGlobalCursorPos(GLWIN_window* window, int* x, int* y);
     void GLwinGetCursorPos(GLWIN_window* window, double* xpos, double* ypos);
 
     // Sound loading API
