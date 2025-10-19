@@ -223,10 +223,34 @@ void GLwinPollEvents(void) {
         DispatchMessage(&msg);
     }
 }
-
-int GLwinWindowShouldClose(GLWIN_window* window) {
-    return window ? window->closed : 1;
+bool GLwinWindowShouldClose(GLWIN_window* window, bool close) {
+	if (window) {
+		if (close) {
+			window->closed = true;
+		}
+		return window->closed;
+	}
+	return true;
+   // return window ? window->closed : 1;
 }
+void GLwinRestoreWindow(GLWIN_window* window)
+{
+	if (!window || !window->hwnd) return;
+	ShowWindow(window->hwnd, SW_RESTORE);
+}
+
+void GLwinMinimizeWindow(GLWIN_window* window)
+{
+	if (!window || !window->hwnd) return;
+	ShowWindow(window->hwnd, SW_MINIMIZE);
+}
+
+void GLwinMaximizeWindow(GLWIN_window* window)
+{
+	if (!window || !window->hwnd) return;
+	ShowWindow(window->hwnd, SW_MAXIMIZE);
+}
+
 
 void GLwinGetFramebufferSize(GLWIN_window* window, int* width, int* height) {
     if (!window || !window->hwnd) {
@@ -374,6 +398,28 @@ void GLwinGetGlobalCursorPos(GLWIN_window* window, int* x, int* y)
     if (GetCursorPos(&p)) {
         if (x) *x = p.x;
         if (y) *y = p.y;
+	}
+    else {
+        if (x) *x = 0;
+        if (y) *y = 0;
+    }
+}
+// Get client area screen origin
+void GLwinGetClientScreenOrigin(GLWIN_window* window, int* outX, int* outY)
+{
+    if (!window || !window->hwnd) {
+        if (outX) *outX = 0;
+        if (outY) *outY = 0;
+        return;
+    }
+    POINT pt = { 0, 0 };
+    if (ClientToScreen(window->hwnd, &pt)) {
+        if (outX) *outX = pt.x;
+        if (outY) *outY = pt.y;
+    }
+    else {
+        if (outX) *outX = 0;
+        if (outY) *outY = 0;
     }
 }
 

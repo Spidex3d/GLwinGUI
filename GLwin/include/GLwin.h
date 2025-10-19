@@ -27,7 +27,12 @@ extern "C" {
 	void* GLwinGetProcAddress(const char* procname);
     void GLwinSwapBuffers(GLWIN_window* window);
     void GLwinPollEvents(void);
-    int  GLwinWindowShouldClose(GLWIN_window* window);
+    //int  GLwinWindowShouldClose(GLWIN_window* window);
+    bool GLwinWindowShouldClose(GLWIN_window* window, bool close);
+	void GLwinRestoreWindow(GLWIN_window* window);
+	void GLwinMinimizeWindow(GLWIN_window* window);
+	void GLwinMaximizeWindow(GLWIN_window* window);
+
     // Window hints (Maximize, Resizeabel, Done)
    //TO DO GLWIN_CONTEXT_VERSION_MAJOR, GLWIN_CONTEXT_VERSION_MINOR, GLWIN_OPENGL_PROFILE, GLWIN_OPENGL_CORE_PROFILE
     void GLwinWindowHint(int hint, int value);
@@ -69,7 +74,8 @@ extern "C" {
 
     // Mouse input API
     int GLwinGetMouseButton(GLWIN_window* window, int button);
-	void GLwinGetGlobalCursorPos(GLWIN_window* window, int* x, int* y);
+	void GLwinGetGlobalCursorPos(GLWIN_window* window, int* x, int* y);         // screen coordinates
+	void GLwinGetClientScreenOrigin(GLWIN_window* window, int* outX, int* outY); // where the window is on the screen
     void GLwinGetCursorPos(GLWIN_window* window, double* xpos, double* ypos);
 
     // Sound loading API

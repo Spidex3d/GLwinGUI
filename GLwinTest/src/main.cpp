@@ -82,7 +82,7 @@ int main() {
 	const double targetFPS = 60.0; // or 120.0
 	const double targetFrameTime = 1.0 / targetFPS; // in seconds
 
-	while (!GLwinWindowShouldClose(window)) {
+	while (!GLwinWindowShouldClose(window, 0)) {
 		double frameStart = GLwinGetTime(); // Start time of the frame
 
         
@@ -90,8 +90,9 @@ int main() {
 		GLwinPollEvents(); // New non-blocking event polling
 
 		if (GLwinGetKey(window, GLWIN_ESCAPE) == GLWIN_PRESS) {
-			std::cout << " Escape key pressed, closing window." << std::endl;
-			break; // Exit loop to close window
+			std::cout << "Escape key pressed, closing window." << std::endl;
+			//break; // Exit loop to close window
+			GLwinWindowShouldClose(window, 1);
 		}
 		if (GLwinGetKey(window, GLWIN_SPACE) == GLWIN_PRESS) {
 			std::cout << "Space key is being held down." << std::endl;
