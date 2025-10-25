@@ -1,6 +1,7 @@
 #include <glad/glad.h>// Include glad to get the OpenGL headers best if glad is at the top
 #include "../../GLwinGUI/vendors/glm/glm.hpp" // Ensure this include is correct and resolves glm::mat4  
 #include <iostream>
+#include <locale>
 #include <GLwin.h>  // Include the GLwin header file my GLFW
 #include <GLwinLog.h> // Include the GLwin logging header
 
@@ -20,11 +21,43 @@ void MyKeyCallback(int key, int action) {
 	const char* act = (action == GLWIN_PRESS) ? "pressed" : "released";
 	printf("Key: %d %s\n", key, act);
 }
+// Convert a wide (UTF-16) C-string to UTF-8 std::string using Win32 API
+static std::string WideToUtf8(const wchar_t* wstr) {
+	if (!wstr) return std::string();
+	int required = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, nullptr, 0, nullptr, nullptr);
+	if (required <= 0) return std::string();
+	std::string out;
+	out.resize(required - 1); // exclude null terminator
+	WideCharToMultiByte(CP_UTF8, 0, wstr, -1, &out[0], required, nullptr, nullptr);
+	return out;
+}
 
+// Drop callback signature:
+// typedef void(*GLwinDropCallback)(int count, const wchar_t** paths);
+void OnDrop(int count, const wchar_t** paths) {
+	if (count <= 0 || !paths) {
+		std::wcout << L"[Drop] empty\n";
+		return;
+	}
 
+	std::wcout << L"[Drop] Received " << count << L" path(s):\n";
+	for (int i = 0; i < count; ++i) {
+		std::wcout << L"  " << paths[i] << L"\n";
+	}
+
+	// Convert to UTF-8 using WideCharToMultiByte and print on std::cout
+	for (int i = 0; i < count; ++i) {
+		std::string utf8 = WideToUtf8(paths[i]);
+		std::cout << "[Drop utf8]  " << utf8 << std::endl;
+	}
+}
 
 
 int main() {
+	// Optional: enable wide output on Windows console (so std::wcout shows nice paths)
+	// Note: This is a convenience; your environment may already handle wide output.
+	std::locale::global(std::locale(""));
+
 	std::cout << "Hello, GLwinTest main Window!" << std::endl;
 	GLwinHelloFromGLwin();
 	
@@ -42,7 +75,10 @@ int main() {
 	else {
 		GLWIN_LOG_INFO("Window created successfully.");
 	}
+	
+	GLwinSetDropCallback(window, OnDrop);
 
+	//GLwinSetCursorVisible(window, GLWIN_FALSE); // Show cursor
 
 	// Toggle custom title bar on/off
 	//GLwinEnableCustomTitleBar(window, GLWIN_TRUE);  // Enable custom title bar - ON
@@ -81,6 +117,8 @@ int main() {
 	else {
 		GLWIN_LOG_INFO("GLAD initialized successfully with GLwinGetProcAddress.");
 	}
+
+	
 	
 	glGetString(GL_VERSION); // Ensure context is current
 	GLWIN_LOG_INFO("OpenGL version " << glGetString(GL_VERSION));
@@ -93,7 +131,7 @@ int main() {
 	while (!GLwinWindowShouldClose(window, 0)) {
 		double frameStart = GLwinGetTime(); // Start time of the frame
 
-        
+		GLwinPresentBackbuffer(window);			 // blit to window
 		// Poll and handle events (inputs, window resize, etc.)
 		GLwinPollEvents(); // New non-blocking event polling
 

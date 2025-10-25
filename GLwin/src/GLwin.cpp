@@ -5,7 +5,7 @@
 
 #include <windows.h>
 
-#include <iostream>
+#include <vector>
 #include <unordered_map>
 
 // for testing
@@ -46,10 +46,19 @@ struct GLWIN_window {
 
     // Mouse/cursor/scroll callbacks
     GLwinMouseButtonCallback mouseButtonCallback = nullptr;
-    GLwinCursorPosCallback  cursorPosCallback = nullptr;
-    GLwinScrollCallback     scrollCallback = nullptr;
+    GLwinCursorPosCallback   cursorPosCallback = nullptr;
+    GLwinScrollCallback      scrollCallback = nullptr;
+
+    // Drop callback
+    GLwinDropCallback        dropCallback = nullptr;
+
+    // Clipboard cached UTF-8 string (returned pointer from GLwinGetClipboardString)
+    std::string              clipboardString;
 
 	void* userPointer = nullptr; // for user data
+
+    // Cursor visible state cache (keeps track of desired visibility)
+    bool cursorVisible = true;
 
 	
 };
@@ -78,6 +87,39 @@ static bool SetPixelFormatForGL(HDC hdc) {
 // Forward declaration
 static LRESULT CALLBACK GLwin_WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+static std::wstring utf8_to_wstring(const std::string& utf8) {
+    if (utf8.empty()) return std::wstring();
+    int size_needed = MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), (int)utf8.size(), NULL, 0);
+    if (size_needed <= 0) return std::wstring();
+    std::wstring wstr(size_needed, 0);
+    MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), (int)utf8.size(), &wstr[0], size_needed);
+    return wstr;
+}
+
+
+static std::string wstring_to_utf8(const std::wstring& wstr) {
+    if (wstr.empty()) return std::string();
+    int size_needed = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int)wstr.size(), NULL, 0, NULL, NULL);
+    if (size_needed <= 0) return std::string();
+    std::string str(size_needed, 0);
+    WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int)wstr.size(), &str[0], size_needed, NULL, NULL);
+    return str;
+}
+
+// Note: g_GLwinSwapInterval is defined/cached in your GLwin_set_swap implementation file.
+extern int g_GLwinSwapInterval; // 0 = no vsync, 1 = vsync, etc.
+
+static LARGE_INTEGER g_perfFreq;
+static LARGE_INTEGER g_lastPresentTime;
+static int g_vsyncInited = 0;
+
+static void vsync_init_if_needed() {
+    if (!g_vsyncInited) {
+        QueryPerformanceFrequency(&g_perfFreq);
+        QueryPerformanceCounter(&g_lastPresentTime);
+        g_vsyncInited = 1;
+    }
+}
 // -----------------------------------------------------------------------------
 // Backbuffer helpers (CreateDIBSection-backed, zero-copy)
 // -----------------------------------------------------------------------------
@@ -161,6 +203,154 @@ static int glwin_internal_create_backbuffer(GLWIN_window* window, int reqW, int 
 
     return 1;
 }
+static int g_GLwinSwapInterval = 0;
+
+// typedef for wglSwapIntervalEXT
+typedef BOOL(WINAPI* PFNWGLSWAPINTERVALEXT)(int interval);
+
+// cached function pointer
+static PFNWGLSWAPINTERVALEXT g_wglSwapIntervalEXT = nullptr;
+
+int GLwinSetSwapInterval(int interval)
+{
+    if (interval < 0) interval = 0; // clamp negative values
+
+    int prev = g_GLwinSwapInterval;
+    g_GLwinSwapInterval = interval;
+
+    // Try to get and cache wglSwapIntervalEXT. This requires a current context on the calling thread.
+    if (!g_wglSwapIntervalEXT) {
+        void* proc = (void*)wglGetProcAddress("wglSwapIntervalEXT");
+        if (proc) g_wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXT)proc;
+    }
+
+    if (g_wglSwapIntervalEXT) {
+        // call extension (no harm if it fails)
+        g_wglSwapIntervalEXT(g_GLwinSwapInterval);
+    }
+
+    return prev;
+
+}
+
+void GLwinApplySwapIntervalSleep(GLWIN_window* window)
+{
+    if (!window) return;
+    vsync_init_if_needed();
+
+    if (g_GLwinSwapInterval <= 0) {
+        QueryPerformanceCounter(&g_lastPresentTime);
+        return;
+    }
+
+    int refreshHz = GLwinGetRefreshRate(window);
+    if (refreshHz <= 0) {
+        // unknown refresh rate => update lastPresent and return
+        QueryPerformanceCounter(&g_lastPresentTime);
+        return;
+    }
+
+    // desired interval in seconds = interval / refreshHz
+    double desiredSec = (double)g_GLwinSwapInterval / (double)refreshHz;
+    double desiredTicks = desiredSec * (double)g_perfFreq.QuadPart;
+
+    LARGE_INTEGER now;
+    QueryPerformanceCounter(&now);
+
+    double last = (double)g_lastPresentTime.QuadPart;
+    double target = last + desiredTicks;
+    double nowd = (double)now.QuadPart;
+
+    if (nowd >= target) {
+        // we're late or on time - update lastPresent and return
+        g_lastPresentTime = now;
+        return;
+    }
+
+    double remainingTicks = target - nowd;
+    double remainingMs = (remainingTicks * 1000.0) / (double)g_perfFreq.QuadPart;
+
+    if (remainingMs > 10.0) {
+        // sleep the bulk, leave a few ms for spin waiting
+        DWORD sleepMs = (DWORD)(remainingMs - 5.0);
+        Sleep(sleepMs);
+    }
+
+    // spin for remaining time for better precision
+    do {
+        QueryPerformanceCounter(&now);
+    } while ((double)now.QuadPart < target);
+
+    g_lastPresentTime = now;
+}
+
+int GLwinGetRefreshRate(GLWIN_window* window) {
+    if (!window || !window->hwnd) return 0;
+
+    // Get the nearest monitor for the window
+    HMONITOR hMon = MonitorFromWindow(window->hwnd, MONITOR_DEFAULTTONEAREST);
+    if (!hMon) return 0;
+
+    MONITORINFOEX mi;
+    ZeroMemory(&mi, sizeof(mi));
+    mi.cbSize = sizeof(mi);
+    if (!GetMonitorInfo(hMon, &mi)) {
+        // Couldn't get monitor info
+        return 0;
+    }
+
+    // Primary method: EnumDisplaySettings for the monitor device name
+    DEVMODE dm;
+    ZeroMemory(&dm, sizeof(dm));
+    dm.dmSize = sizeof(dm);
+    if (EnumDisplaySettings(mi.szDevice, ENUM_CURRENT_SETTINGS, &dm)) {
+        int freq = (int)dm.dmDisplayFrequency;
+        if (freq > 0) return freq;
+    }
+
+    // Fallback: GetDeviceCaps on the monitor's HDC
+    HDC hdc = NULL;
+    // Create a DC for the monitor device name (use CreateDC when device name available).
+    if (mi.szDevice[0] != 0) {
+        hdc = CreateDC(mi.szDevice, mi.szDevice, NULL, NULL);
+    }
+    if (!hdc) {
+        // Fallback to the window DC for the window's screen
+        hdc = GetDC(window->hwnd);
+    }
+    if (hdc) {
+        int vrefresh = GetDeviceCaps(hdc, VREFRESH);
+        if (hdc != GetDC(NULL)) { // if we created the DC using CreateDC, release it with DeleteDC
+            if (mi.szDevice[0] != 0) DeleteDC(hdc);
+        }
+        else {
+            ReleaseDC(window->hwnd, hdc);
+        }
+        if (vrefresh > 0) return vrefresh;
+    }
+
+    // Unknown
+    return 0;
+}
+
+/* GLwinSetUserPointer & GLwinGetUserPointer they read/write the existing userPointer field already present in your internal GLWIN_window struct.
+These are tiny, safe convenience helpers that let applications attach arbitrary data (e.g., a pointer to a scene,
+application state, or C++ object) to a window.*/
+
+void GLwinSetUserPointer(GLWIN_window* window, void* ptr)
+{
+	if (!window) return;
+	window->userPointer = ptr;
+}
+
+void* GLwinGetUserPointer(GLWIN_window* window)
+{
+	if (!window) return nullptr;
+    return nullptr;
+}
+
+
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -319,6 +509,7 @@ GLWIN_window* GLwin_CreateWindow(int width, int height, const wchar_t* title) {
 
     ShowWindow(hwnd, SW_SHOW);
     UpdateWindow(hwnd);
+    DragAcceptFiles(hwnd, TRUE); // darg adn drop
 
     // Setup OpenGL
     win->hdc = GetDC(hwnd);
@@ -601,6 +792,166 @@ void GLwinSetScrollCallback(GLWIN_window* window, GLwinScrollCallback cb)
     window->scrollCallback = cb;
 }
 
+void GLwinSetCursorVisible(GLWIN_window* window, int visible)
+{
+    // If no window, just adjust global cursor visibility
+    bool wantVisible = (visible != 0);
+    if (!window) {
+        // Use ShowCursor until it reaches the desired state
+        if (wantVisible) {
+            int cnt = ShowCursor(TRUE);
+            while (cnt < 0) cnt = ShowCursor(TRUE);
+        }
+        else {
+            int cnt = ShowCursor(FALSE);
+            while (cnt >= 0) cnt = ShowCursor(FALSE);
+        }
+        return;
+    }
+
+    window->cursorVisible = wantVisible;
+    if (wantVisible) {
+        int cnt = ShowCursor(TRUE);
+        while (cnt < 0) cnt = ShowCursor(TRUE);
+    }
+    else {
+        int cnt = ShowCursor(FALSE);
+        while (cnt >= 0) cnt = ShowCursor(FALSE);
+    }
+}
+
+// New: Set the cursor position in client coordinates for the given window.
+// Converts client coords to screen coords and calls SetCursorPos. Updates internal mouseX/mouseY
+// and invokes cursor callback if set.
+void GLwinSetCursorPos(GLWIN_window* window, int x, int y)
+{
+    // If a window is provided, convert client -> screen coords
+    if (window && window->hwnd) {
+        POINT pt = { x, y };
+        if (!ClientToScreen(window->hwnd, &pt)) {
+            // fallback: just use x,y as screen coords
+            SetCursorPos(x, y);
+        }
+        else {
+            SetCursorPos(pt.x, pt.y);
+        }
+        // update cached client-space mouse position
+        window->mouseX = (double)x;
+        window->mouseY = (double)y;
+        // fire cursor callback
+        if (window->cursorPosCallback) {
+            window->cursorPosCallback(window->mouseX, window->mouseY);
+        }
+    }
+    else {
+        // No window: interpret x,y as screen coordinates
+        SetCursorPos(x, y);
+    }
+}
+
+void GLwinSetDropCallback(GLWIN_window* window, GLwinDropCallback cb)
+{
+	if (!window) return;
+	window->dropCallback = cb;
+}
+
+void GLwinSetClipboardString(GLWIN_window* window, const char* str)
+{
+    if (!str) return;
+
+    // Convert UTF-8 input to UTF-16 (wide) for the clipboard
+    std::string sutf8 = str;
+    std::wstring wtext = utf8_to_wstring(sutf8);
+    if (wtext.empty()) {
+        // If conversion produced empty string, still try to clear clipboard
+    }
+
+    if (!OpenClipboard(window ? window->hwnd : NULL)) {
+        return;
+    }
+
+    // Empty and set data
+    EmptyClipboard();
+
+    // Allocate global memory for Unicode text (wide chars + null)
+    SIZE_T bytes = (wtext.size() + 1) * sizeof(wchar_t);
+    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, bytes);
+    if (!hMem) {
+        CloseClipboard();
+        return;
+    }
+    void* p = GlobalLock(hMem);
+    if (p) {
+        memcpy(p, wtext.c_str(), bytes);
+        GlobalUnlock(hMem);
+        // SetClipboardData takes ownership of hMem
+        SetClipboardData(CF_UNICODETEXT, hMem);
+    }
+    else {
+        GlobalFree(hMem);
+    }
+
+    CloseClipboard();
+}
+
+const char* GLwinGetClipboardString(GLWIN_window* window)
+{
+    if (!window) return nullptr;
+
+    window->clipboardString.clear();
+
+    if (!OpenClipboard(window->hwnd)) {
+        // Return empty string pointer (internal storage)
+        window->clipboardString.clear();
+        return window->clipboardString.c_str();
+    }
+
+    if (!IsClipboardFormatAvailable(CF_UNICODETEXT) && !IsClipboardFormatAvailable(CF_TEXT)) {
+        CloseClipboard();
+        window->clipboardString.clear();
+        return window->clipboardString.c_str();
+    }
+
+    // Prefer Unicode text
+    if (IsClipboardFormatAvailable(CF_UNICODETEXT)) {
+        HGLOBAL hData = GetClipboardData(CF_UNICODETEXT);
+        if (hData) {
+            LPCWSTR pdata = (LPCWSTR)GlobalLock(hData);
+            if (pdata) {
+                std::wstring wstr(pdata);
+                window->clipboardString = wstring_to_utf8(wstr);
+                GlobalUnlock(hData);
+            }
+        }
+    }
+    else {
+        // Fallback to ANSI CF_TEXT
+        HGLOBAL hData = GetClipboardData(CF_TEXT);
+        if (hData) {
+            LPCSTR pdata = (LPCSTR)GlobalLock(hData);
+            if (pdata) {
+                // Treat as ANSI, convert to UTF-8
+                std::string ansi(pdata);
+                // Convert ANSI to wide, then to UTF-8
+                int needed = MultiByteToWideChar(CP_ACP, 0, ansi.c_str(), (int)ansi.size(), NULL, 0);
+                if (needed > 0) {
+                    std::wstring wstr(needed, 0);
+                    MultiByteToWideChar(CP_ACP, 0, ansi.c_str(), (int)ansi.size(), &wstr[0], needed);
+                    window->clipboardString = wstring_to_utf8(wstr);
+                }
+                else {
+                    window->clipboardString = ansi; // fallback
+                }
+                GlobalUnlock(hData);
+            }
+        }
+    }
+
+    CloseClipboard();
+    return window->clipboardString.c_str();
+}
+
+
 // Mouse state
 int GLwinGetMouseButton(GLWIN_window* window, int button)
 {
@@ -668,6 +1019,19 @@ void GLwinTerminate(void) {
     // For now, nothing (all handled per-window)
 }
 
+// Helper: compute modifier flags for callbacks
+// Bitmask layout returned in `mods` parameter:
+// bit 0 (1) = SHIFT, bit 1 (2) = CTRL, bit 2 (4) = ALT
+static int glwin_get_mods_from_key_state()
+{
+    int mods = 0;
+    if (GetKeyState(VK_SHIFT) & 0x8000) mods |= 1;
+    if (GetKeyState(VK_CONTROL) & 0x8000) mods |= 2;
+    if (GetKeyState(VK_MENU) & 0x8000) mods |= 4;
+    return mods;
+}
+
+
 // Window procedure (handles messages and input)
 static LRESULT CALLBACK GLwin_WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     GLWIN_window* window = nullptr;
@@ -701,6 +1065,36 @@ static LRESULT CALLBACK GLwin_WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
             }
         }
         return 0;
+	case WM_DROPFILES:
+        if (window && window->dropCallback) {
+            HDROP hDrop = (HDROP)wParam;
+            UINT count = DragQueryFileW(hDrop, 0xFFFFFFFF, NULL, 0);
+            if (count > 0) {
+                std::vector<std::wstring> paths;
+                paths.reserve(count);
+                for (UINT i = 0; i < count; ++i) {
+                    UINT len = DragQueryFileW(hDrop, i, NULL, 0);
+                    if (len == 0) {
+                        paths.emplace_back();
+                        continue;
+                    }
+                    std::wstring buf;
+                    buf.resize(len + 1);
+                    DragQueryFileW(hDrop, i, &buf[0], len + 1);
+                    // ensure null-termination and trim to actual length
+                    buf.resize(wcslen(buf.c_str()));
+                    paths.push_back(std::move(buf));
+                }
+                // Build array of const wchar_t* for callback
+                std::vector<const wchar_t*> ptrs;
+                ptrs.reserve(paths.size());
+                for (const auto& s : paths) ptrs.push_back(s.c_str());
+                // Invoke callback
+                window->dropCallback((int)ptrs.size(), ptrs.empty() ? nullptr : ptrs.data());
+            }
+            DragFinish(hDrop);
+        }
+        return 0;
     case WM_KEYDOWN:
         if (window) {
             window->keyState[(int)wParam] = true;
@@ -728,25 +1122,53 @@ static LRESULT CALLBACK GLwin_WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
         if (window) {
             window->mouseX = GET_X_LPARAM(lParam);
             window->mouseY = GET_Y_LPARAM(lParam);
+            if (window->cursorPosCallback) {
+                // callback expects double xpos, double ypos
+                window->cursorPosCallback(window->mouseX, window->mouseY);
+            }
         }
         break;
     case WM_LBUTTONDOWN:
         if (window) window->mouseButtons[GLWIN_MOUSE_BUTTON_LEFT] = true;
+		if (window && window->mouseButtonCallback) {
+			int mods = glwin_get_mods_from_key_state();
+			window->mouseButtonCallback(GLWIN_MOUSE_BUTTON_LEFT, GLWIN_PRESS, mods);
+		}
         break;
     case WM_LBUTTONUP:
         if (window) window->mouseButtons[GLWIN_MOUSE_BUTTON_LEFT] = false;
+		if (window->mouseButtonCallback) {
+			int mods = glwin_get_mods_from_key_state();
+			window->mouseButtonCallback(GLWIN_MOUSE_BUTTON_LEFT, GLWIN_RELEASE, mods);
+		}
         break;
     case WM_RBUTTONDOWN:
         if (window) window->mouseButtons[GLWIN_MOUSE_BUTTON_RIGHT] = true;
+		if (window->mouseButtonCallback) {
+			int mods = glwin_get_mods_from_key_state();
+			window->mouseButtonCallback(GLWIN_MOUSE_BUTTON_RIGHT, GLWIN_PRESS, mods);
+		}
         break;
     case WM_RBUTTONUP:
         if (window) window->mouseButtons[GLWIN_MOUSE_BUTTON_RIGHT] = false;
+		if (window->mouseButtonCallback) {
+			int mods = glwin_get_mods_from_key_state();
+			window->mouseButtonCallback(GLWIN_MOUSE_BUTTON_RIGHT, GLWIN_RELEASE, mods);
+		}
         break;
     case WM_MBUTTONDOWN:
         if (window) window->mouseButtons[GLWIN_MOUSE_BUTTON_MIDDLE] = true;
+		if (window->mouseButtonCallback) {
+			int mods = glwin_get_mods_from_key_state();
+			window->mouseButtonCallback(GLWIN_MOUSE_BUTTON_MIDDLE, GLWIN_PRESS, mods);
+		}
         break;
     case WM_MBUTTONUP:
         if (window) window->mouseButtons[GLWIN_MOUSE_BUTTON_MIDDLE] = false;
+		if (window->mouseButtonCallback) {  
+			int mods = glwin_get_mods_from_key_state(); 
+			window->mouseButtonCallback(GLWIN_MOUSE_BUTTON_MIDDLE, GLWIN_RELEASE, mods);
+		}
         break;
     }
 

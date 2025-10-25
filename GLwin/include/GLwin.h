@@ -112,6 +112,7 @@ extern "C" {
     // Swap interval / vsync control (for apps using GLwinSwapBuffers or software present)
     // Returns previous interval (or 0/-1 on failure).
     int GLwinSetSwapInterval(int interval);
+	void GLwinApplySwapIntervalSleep(GLWIN_window* window);
 
     // Get monitor refresh rate (Hz). Useful for timing/vsync decisions.
     int GLwinGetRefreshRate(GLWIN_window* window);
