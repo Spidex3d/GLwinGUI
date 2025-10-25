@@ -1,4 +1,4 @@
-How to set up a window with GLwin
+How to set up a window with GLwin.
 
 #include <iostream>
 #include "../spxgl.h"
