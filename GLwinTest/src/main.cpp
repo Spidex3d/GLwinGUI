@@ -117,8 +117,7 @@ int main() {
 	else {
 		GLWIN_LOG_INFO("GLAD initialized successfully with GLwinGetProcAddress.");
 	}
-
-	
+		
 	
 	glGetString(GL_VERSION); // Ensure context is current
 	GLWIN_LOG_INFO("OpenGL version " << glGetString(GL_VERSION));
