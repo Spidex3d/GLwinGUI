@@ -59,11 +59,18 @@ extern "C" {
 
     // Time API
 	void GLwinGetTimer(GLWIN_window* window, int tstart, int tmax);
-    // getTime
-    // getElapsedTime
-    // getFrameTime
-    // setTargetFPS
-    // waitTime
+    // --- Backbuffer / DIB helper for zero-copy software rendering ---
+    // Create a DIB-section sized to the requested width/height and return a pointer to the pixel bits.
+    // The returned pointer is valid until GLwinDestroyBackbuffer is called or the backbuffer is recreated on resize.
+    // If width==0 or height==0 the current window framebuffer size is used.
+    // Pixel format: 32bpp BGRA (DWORD aligned).
+    void* GLwinCreateBackbuffer(GLWIN_window* window, int width, int height, int* outWidth, int* outHeight);
+    // Get the pointer to the active backbuffer pixels (or NULL). Useful for rendering directly.
+    void* GLwinGetBackbufferPixels(GLWIN_window* window);
+    // Destroy the backbuffer created with GLwinCreateBackbuffer.
+    void GLwinDestroyBackbuffer(GLWIN_window* window);
+    // Present the backbuffer to the window (blit). This is separate from GLwinSwapBuffers so an app can control presentation.
+    void GLwinPresentBackbuffer(GLWIN_window* window);
 
 
 
@@ -82,7 +89,40 @@ extern "C" {
 	void GLwinGetClientScreenOrigin(GLWIN_window* window, int* outX, int* outY); // where the window is on the screen
     void GLwinGetCursorPos(GLWIN_window* window, double* xpos, double* ypos);
 
-    // Sound loading API
+    typedef void(*GLwinMouseButtonCallback)(int button, int action, int mods);
+    typedef void(*GLwinCursorPosCallback)(double xpos, double ypos);
+    typedef void(*GLwinScrollCallback)(double xoffset, double yoffset);
+
+    void GLwinSetMouseButtonCallback(GLWIN_window* window, GLwinMouseButtonCallback cb);
+    void GLwinSetCursorPosCallback(GLWIN_window* window, GLwinCursorPosCallback cb);
+    void GLwinSetScrollCallback(GLWIN_window* window, GLwinScrollCallback cb);
+
+    // Mouse cursor helpers
+    void GLwinSetCursorVisible(GLWIN_window* window, int visible);
+    void GLwinSetCursorPos(GLWIN_window* window, int x, int y);
+
+    // File drop (drag & drop) callback: receives count and array of wide-char paths
+    typedef void(*GLwinDropCallback)(int count, const wchar_t** paths);
+    void GLwinSetDropCallback(GLWIN_window* window, GLwinDropCallback cb);
+
+    // Clipboard helpers
+    void GLwinSetClipboardString(GLWIN_window* window, const char* str);
+    const char* GLwinGetClipboardString(GLWIN_window* window); // returns internal pointer; copy if you need it
+
+    // Swap interval / vsync control (for apps using GLwinSwapBuffers or software present)
+    // Returns previous interval (or 0/-1 on failure).
+    int GLwinSetSwapInterval(int interval);
+
+    // Get monitor refresh rate (Hz). Useful for timing/vsync decisions.
+    int GLwinGetRefreshRate(GLWIN_window* window);
+
+    // User pointer to attach app-specific data to a window (like GLFW)
+    void GLwinSetUserPointer(GLWIN_window* window, void* ptr);
+    void* GLwinGetUserPointer(GLWIN_window* window);
+
+    // Window title helper
+    void GLwinSetWindowTitle(GLWIN_window* window, const wchar_t* title);
+
 
     // Terminate and cleanup library (optional, for symmetry with GLFW)
     void GLwinTerminate(void);

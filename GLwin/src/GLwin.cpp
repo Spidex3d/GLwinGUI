@@ -35,6 +35,22 @@ struct GLWIN_window {
     bool mouseButtons[3] = { false, false, false };
 	GLwinKeyCallback keyCallback = nullptr;
     GLwinCharCallback charCallback = nullptr;
+
+    // Backbuffer-related fields (for zero-copy CreateDIBSection)
+    HBITMAP backBitmap = NULL;    // DIB section HBITMAP
+    void* backPixels = nullptr; // pointer to DIB bits (BGRA, top-down)
+    int     backWidth = 0;
+    int     backHeight = 0;
+    HDC     backMemDC = NULL;     // memory DC with the backBitmap selected
+    HBITMAP backOldBitmap = NULL; // previous bitmap selected in backMemDC
+
+    // Mouse/cursor/scroll callbacks
+    GLwinMouseButtonCallback mouseButtonCallback = nullptr;
+    GLwinCursorPosCallback  cursorPosCallback = nullptr;
+    GLwinScrollCallback     scrollCallback = nullptr;
+
+	void* userPointer = nullptr; // for user data
+
 	
 };
 
@@ -62,22 +78,192 @@ static bool SetPixelFormatForGL(HDC hdc) {
 // Forward declaration
 static LRESULT CALLBACK GLwin_WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-// Implementation
+// -----------------------------------------------------------------------------
+// Backbuffer helpers (CreateDIBSection-backed, zero-copy)
+// -----------------------------------------------------------------------------
 
-void GLwinHello(void) {
-    std::cout << "Hello, GLwin API Test!" << std::endl;
-    int errorCode = 42; // Example value
-    int x = 1, y = 2;
-    GLWIN_LOG_INIT("GLwin: Logging initialized.");
+// Helper: create or recreate the DIB-section backbuffer. Returns true on success.
+static int glwin_internal_create_backbuffer(GLWIN_window* window, int reqW, int reqH)
+{
+    if (!window || !window->hwnd) return 0;
 
-    GLWIN_LOG_ERROR("Something went wrong: " << errorCode);
-    GLWIN_LOG_WARNING("This might be a problem");
-    GLWIN_LOG_INFO("Starting process X");
-    GLWIN_LOG_TRACE("Tracing process X");
-    GLWIN_LOG_DEBUG("x=" << x << ", y=" << y);
+    int w = reqW;
+    int h = reqH;
+    if (w <= 0 || h <= 0) {
+        // use current client size if request is zero/invalid
+        RECT rc;
+        if (GetClientRect(window->hwnd, &rc)) {
+            w = rc.right - rc.left;
+            h = rc.bottom - rc.top;
+        }
+        else {
+            w = window->width ? window->width : 1;
+            h = window->height ? window->height : 1;
+        }
+    }
 
+    // If backbuffer exists with same size, keep it
+    if (window->backBitmap && window->backWidth == w && window->backHeight == h) {
+        return 1;
+    }
 
+    // Destroy existing backbuffer if any
+    if (window->backMemDC) {
+        if (window->backOldBitmap) SelectObject(window->backMemDC, window->backOldBitmap);
+        DeleteDC(window->backMemDC);
+        window->backMemDC = NULL;
+        window->backOldBitmap = NULL;
+    }
+    if (window->backBitmap) {
+        DeleteObject(window->backBitmap);
+        window->backBitmap = NULL;
+        window->backPixels = NULL;
+    }
+
+    // Prepare BITMAPINFO for a top-down 32bpp BGRA DIB (negative height => top-down)
+    BITMAPINFO bmi;
+    ZeroMemory(&bmi, sizeof(bmi));
+    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth = w;
+    bmi.bmiHeader.biHeight = -h; // top-down
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 32; // 32bpp
+    bmi.bmiHeader.biCompression = BI_RGB;
+    bmi.bmiHeader.biSizeImage = 0;
+
+    // CreateDIBSection - pass a screen DC for compatibility
+    HDC hdcScreen = GetDC(NULL);
+    void* bits = NULL;
+    HBITMAP hBitmap = CreateDIBSection(hdcScreen, &bmi, DIB_RGB_COLORS, &bits, NULL, 0);
+    ReleaseDC(NULL, hdcScreen);
+
+    if (!hBitmap || !bits) {
+        if (hBitmap) DeleteObject(hBitmap);
+        return 0;
+    }
+
+    // Create a memory DC and select the bitmap
+    HDC memDC = CreateCompatibleDC(NULL);
+    if (!memDC) {
+        DeleteObject(hBitmap);
+        return 0;
+    }
+    HBITMAP oldBmp = (HBITMAP)SelectObject(memDC, hBitmap);
+    // It's OK if oldBmp is NULL (when DC was empty).
+
+    // Store into window
+    window->backBitmap = hBitmap;
+    window->backPixels = bits;
+    window->backWidth = w;
+    window->backHeight = h;
+    window->backMemDC = memDC;
+    window->backOldBitmap = oldBmp;
+
+    return 1;
 }
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+    // Create a DIB-section sized to the requested width/height and return a pointer to the pixel bits.
+    // Pixel format: 32bpp BGRA (top-down). outWidth/outHeight return actual size.
+    void* GLwinCreateBackbuffer(GLWIN_window* window, int width, int height, int* outWidth, int* outHeight)
+    {
+        if (!window) return NULL;
+
+        if (!glwin_internal_create_backbuffer(window, width, height)) {
+            if (outWidth) *outWidth = 0;
+            if (outHeight) *outHeight = 0;
+            return NULL;
+        }
+
+        if (outWidth) *outWidth = window->backWidth;
+        if (outHeight) *outHeight = window->backHeight;
+        return window->backPixels;
+    }
+
+    void* GLwinGetBackbufferPixels(GLWIN_window* window)
+    {
+        if (!window) return NULL;
+        return window->backPixels;
+    }
+
+    void GLwinDestroyBackbuffer(GLWIN_window* window)
+    {
+        if (!window) return;
+
+        if (window->backMemDC) {
+            if (window->backOldBitmap) {
+                SelectObject(window->backMemDC, window->backOldBitmap);
+                window->backOldBitmap = NULL;
+            }
+            DeleteDC(window->backMemDC);
+            window->backMemDC = NULL;
+        }
+        if (window->backBitmap) {
+            DeleteObject(window->backBitmap);
+            window->backBitmap = NULL;
+        }
+        window->backPixels = NULL;
+        window->backWidth = 0;
+        window->backHeight = 0;
+    }
+
+    void GLwinPresentBackbuffer(GLWIN_window* window)
+    {
+        if (!window || !window->hwnd) return;
+
+        if (!window->backBitmap || !window->backMemDC) {
+            // Nothing to present
+            return;
+        }
+
+        // Get window client size to determine destination rectangle
+        RECT rc;
+        if (!GetClientRect(window->hwnd, &rc)) {
+            return;
+        }
+        int dstW = rc.right - rc.left;
+        int dstH = rc.bottom - rc.top;
+        if (dstW <= 0 || dstH <= 0) return;
+
+        HDC hdcWindow = GetDC(window->hwnd);
+        if (!hdcWindow) return;
+
+        // If backbuffer size matches client size, use BitBlt for 1:1 copy.
+        if (window->backWidth == dstW && window->backHeight == dstH) {
+            BitBlt(hdcWindow, 0, 0, dstW, dstH, window->backMemDC, 0, 0, SRCCOPY);
+        }
+        else {
+            // Stretch/scale if sizes differ
+            SetStretchBltMode(hdcWindow, HALFTONE);
+            StretchBlt(hdcWindow, 0, 0, dstW, dstH, window->backMemDC, 0, 0, window->backWidth, window->backHeight, SRCCOPY);
+        }
+
+        ReleaseDC(window->hwnd, hdcWindow);
+    }
+
+#ifdef __cplusplus
+}
+#endif
+// -----------------------------------------------------------------------------
+// Backbuffer helpers (CreateDIBSection-backed, zero-copy)   #### END ####
+// -----------------------------------------------------------------------------
+
+
+//void GLwinHello(void) {
+//    std::cout << "Hello, GLwin API Test!" << std::endl;
+//    int errorCode = 42; // Example value
+//    int x = 1, y = 2;
+//    GLWIN_LOG_INIT("GLwin: Logging initialized.");
+//
+//    GLWIN_LOG_ERROR("Something went wrong: " << errorCode);
+//    GLWIN_LOG_WARNING("This might be a problem");
+//    GLWIN_LOG_INFO("Starting process X");
+//    GLWIN_LOG_TRACE("Tracing process X");
+//    GLWIN_LOG_DEBUG("x=" << x << ", y=" << y);
+//}
 // ------------------------------------------ New code to do with spxgl -------------------------------------
 HWND GLwinGetHWND(GLWIN_window* window)
 {
@@ -162,6 +348,10 @@ GLWIN_window* GLwin_CreateWindow(int width, int height, const wchar_t* title) {
 
 void GLwin_DestroyWindow(GLWIN_window* window) {
     if (!window) return;
+
+	// Destroy backbuffer if any presant
+	GLwinDestroyBackbuffer(window);
+
     if (window->hglrc) {
         wglMakeCurrent(nullptr, nullptr);
         wglDeleteContext(window->hglrc);
@@ -338,6 +528,8 @@ void GLwinGetTimer(GLWIN_window* window, int tstart, int tmax)
 
 
 
+
+
 //bool GLwinSetScreenMaximized(GLWIN_window* window, bool maximize) {
 //    if (!window || !window->hwnd) return false;
 //    ShowWindow(window->hwnd, maximize ? SW_MAXIMIZE : SW_RESTORE);
@@ -388,6 +580,25 @@ void GLwinSetCharCallback(GLWIN_window* window, GLwinCharCallback callback)
 	if (!window) return;
 	window->charCallback = callback;
 
+}
+
+// Mouse callback setters (new implementations)
+void GLwinSetMouseButtonCallback(GLWIN_window* window, GLwinMouseButtonCallback cb)
+{
+    if (!window) return;
+    window->mouseButtonCallback = cb;
+}
+
+void GLwinSetCursorPosCallback(GLWIN_window* window, GLwinCursorPosCallback cb)
+{
+    if (!window) return;
+    window->cursorPosCallback = cb;
+}
+
+void GLwinSetScrollCallback(GLWIN_window* window, GLwinScrollCallback cb)
+{
+    if (!window) return;
+    window->scrollCallback = cb;
 }
 
 // Mouse state
@@ -444,6 +655,14 @@ void GLwinGetCursorPos(GLWIN_window* window, double* xpos, double* ypos)
     if (ypos) *ypos = window->mouseY;
 }
 
+
+
+void GLwinSetWindowTitle(GLWIN_window* window, const wchar_t* title)
+{
+	if (!window || !window->hwnd) return;
+	SetWindowText(window->hwnd, title);
+}
+
 // Optional: terminate function
 void GLwinTerminate(void) {
     // For now, nothing (all handled per-window)
@@ -471,6 +690,12 @@ static LRESULT CALLBACK GLwin_WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
         if (window) {
             window->width = LOWORD(lParam);
             window->height = HIWORD(lParam);
+            // Recreate backbuffer on resize (if present)
+            if (window->backBitmap) {
+                // Destroy and recreate with new size
+                GLwinDestroyBackbuffer(window);
+                glwin_internal_create_backbuffer(window, window->width, window->height);
+            }
             if (window->resizeCallback) {
                 window->resizeCallback(window->width, window->height);
             }

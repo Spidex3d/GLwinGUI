@@ -21,10 +21,14 @@ void MyKeyCallback(int key, int action) {
 	printf("Key: %d %s\n", key, act);
 }
 
+
+
+
 int main() {
 	std::cout << "Hello, GLwinTest main Window!" << std::endl;
 	GLwinHelloFromGLwin();
 	
+
 	GLwinWindowHint(0, 0); // Not implemented
 	GLwinWindowHint(GLWIN_MAXIMIZED, GLWIN_FALSE); // Default is not maximized
 	GLwinWindowHint(GLWIN_RESIZABLE, GLWIN_TRUE); // Default is resizable
@@ -38,6 +42,8 @@ int main() {
 	else {
 		GLWIN_LOG_INFO("Window created successfully.");
 	}
+
+
 	// Toggle custom title bar on/off
 	//GLwinEnableCustomTitleBar(window, GLWIN_TRUE);  // Enable custom title bar - ON
 	GLwinEnableCustomTitleBar(window, GLWIN_FALSE); // Restore Windows default - OFF
@@ -81,6 +87,8 @@ int main() {
 
 	const double targetFPS = 60.0; // or 120.0
 	const double targetFrameTime = 1.0 / targetFPS; // in seconds
+
+	GLwinSetWindowTitle(window, L"Changed Window Title");
 
 	while (!GLwinWindowShouldClose(window, 0)) {
 		double frameStart = GLwinGetTime(); // Start time of the frame
