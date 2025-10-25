@@ -78,6 +78,12 @@ void GLwinHello(void) {
 
 
 }
+// ------------------------------------------ New code to do with spxgl -------------------------------------
+HWND GLwinGetHWND(GLWIN_window* window)
+{
+    if (!window) return NULL;
+    return window->hwnd;
+}
 
 GLWIN_window* GLwin_CreateWindow(int width, int height, const wchar_t* title) {
     if (!classRegistered) {

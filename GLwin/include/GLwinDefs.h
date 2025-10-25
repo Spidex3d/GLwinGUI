@@ -34,7 +34,6 @@
 
 // Action keys Enter, Space, Arrows, etc.
 #define GLWIN_RETURN                  13 //0x0D
-#define GLWIN_SPACE                   32 //0x20
 
 #define GLWIN_LEFT                    37 //0x25
 #define GLWIN_UP                      38 //0x26
@@ -42,13 +41,46 @@
 #define GLWIN_DOWN                    40 //0x28
 
 #define GLWIN_INSERT                  45 //0x2D
-#define GLWIN_DELETE                  46 //0x2E
 #define GLWIN_BACKSPACE               8  //0x08
 #define GLWIN_TAB                     9  //0x09
+#define GLWIN_SPACE                   32 //0x20 space
 #define GLWIN_PAGE_UP                 33 //0x21
 #define GLWIN_PAGE_DOWN               34 //0x22
 #define GLWIN_HOME                    36 //0x24
 #define GLWIN_END                     35 //0x23
+#define GLWIN_TILDE                   126 //0x7E ~
+#define GLWIN_DELETE                  127 //0x7f Delete
+
+#define GLWIN_DOT					  46 //0x2E .
+#define GLWIN_COMMA                   44 //0x2C ,
+#define GLWIN_SEMICOLON               59 //0x3B ;
+#define GLWIN_SLASH                   47 //0x2F /
+#define GLWIN_BACKSLASH               92 //0x5C \
+
+#define GLWIN_LEFT_BRACKET            91 //0x5B [
+#define GLWIN_RIGHT_BRACKET           93 //0x5D ]
+#define GLWIN_EQUAL                   61 //0x3D =
+#define GLWIN_QMARK                   63 //0x3f ?
+#define GLWIN_AT                      64 //0x40 @
+#define GLWIN_COLON                   58 //0x3A :
+#define GLWIN_CARET                   94 //0x5E ^
+#define GLWIN_EXCLAMATION             33 //0x21 !
+#define GLWIN_DOUBLE_QUOTE            34 //0x22 "
+#define GLWIN_HASH                    35 //0x23 #	
+#define GLWIN_DOLLAR                  36 //0x24 $
+#define GLWIN_PERCENT                 37 //0x25 %
+#define GLWIN_AMPERSAND               38 //0x26 &
+#define GLWIN_APOSTROPHE              39 //0x27 '
+#define GLWIN_LEFT_PARENTHESIS        40 //0x28 (
+#define GLWIN_RIGHT_PARENTHESIS       41 //0x29 )
+#define GLWIN_ASTERISK                42 //0x2A *
+#define GLWIN_PLUS                    43 //0x2B +
+#define GLWIN_MINUS                   45 //0x2D -
+#define GLWIN_TABULATION              9  //0x09 Tab
+
+
+
+
 
 // Alphabet keys 65 to 90	         
 #define GLWIN_KEY_A                   65 //0x41

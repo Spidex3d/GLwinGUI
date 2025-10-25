@@ -15,6 +15,10 @@ extern "C" {
     // Opaque window structure
     typedef struct GLWIN_window GLWIN_window;
     
+    // --- new: return native HWND for platform-specific presentation / interop ---
+    // Returns NULL if the implementation cannot provide a native handle.
+    HWND GLwinGetHWND(GLWIN_window* window);
+	// ------------------------------------------  End HWND ------------------------------------------
 
     // Window creation & destruction
     GLWIN_window* GLwin_CreateWindow(int width, int height, const wchar_t* title);
